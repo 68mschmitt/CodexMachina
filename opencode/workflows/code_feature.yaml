@@ -1,0 +1,51 @@
+name: code_feature
+version: 1
+description: Implement a feature from RFC to merged PR.
+
+inputs:
+  - docs/RFCs/{{feature}}/RFC.md
+  - docs/RFCs/{{feature}}/TestPlan.md
+  - docs/RFCs/{{feature}}/ARCHITECTURE.md
+  - tickets/{{feature}}.json
+
+outputs:
+  - pr:url
+  - docs/CHANGELOG.md
+  - reports/coverage.json
+
+agents:
+  - use: Facilitator
+  - use: TestWriter
+  - use: Implementer
+  - use: Reviewer
+  - use: ConstraintsKeeper
+  - use: DocWriter
+
+tools:
+  - repo.search
+  - repo.edit
+  - run.tests
+  - run.lint
+  - run.format
+  - run.build
+  - git.branch
+  - git.commit
+  - git.pr
+
+preset: strict
+
+gates:
+  - run.lint: pass
+  - run.format: pass
+  - run.tests: pass
+  - run.build: pass
+  - diff.size:
+      max_lines: ${MAX_DIFF_LINES}
+
+variables:
+  feature: null
+
+context:
+  - style: packs/style/STYLE.md
+  - arch: docs/ARCH.md
+  - glossary: packs/glossary/Domain.md

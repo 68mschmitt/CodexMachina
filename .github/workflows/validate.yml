@@ -1,0 +1,63 @@
+name: Validate OpenCode Assets
+
+on:
+  pull_request:
+    paths:
+      - 'opencode/**'
+      - '.github/workflows/validate.yml'
+  push:
+    branches:
+      - main
+    paths:
+      - 'opencode/**'
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Validate YAML schemas
+        run: |
+          pip install pyyaml jsonschema
+          python opencode/scripts/validate_schemas.py
+
+      - name: Check YAML syntax
+        run: |
+          python -m yaml opencode/agents/*.yaml
+          python -m yaml opencode/workflows/*.yaml
+          python -m yaml opencode/presets/*.yaml
+
+      - name: Smoke test templates
+        run: |
+          python opencode/scripts/render_templates.py --dry-run
+
+      - name: Verify file structure
+        run: |
+          # Ensure all required directories exist
+          test -d opencode/agents || exit 1
+          test -d opencode/workflows || exit 1
+          test -d opencode/packs || exit 1
+          test -d opencode/templates || exit 1
+          test -d opencode/gates || exit 1
+          test -d opencode/tools || exit 1
+          test -f opencode/opencode.project.yaml || exit 1
+          echo "✓ All required directories and files present"
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check markdown formatting
+        uses: nosborn/github-action-markdown-cli@v3.3.0
+        with:
+          files: opencode/packs opencode/docs
+          config_file: '.markdownlintrc'

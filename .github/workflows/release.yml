@@ -1,0 +1,41 @@
+name: Release OpenCode Agents
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create tarball
+        run: |
+          mkdir -p build
+          tar -czf build/opencode-agents-${{ steps.version.outputs.VERSION }}.tar.gz opencode/
+
+      - name: Generate release notes
+        id: release_notes
+        run: |
+          if [ -f CHANGELOG.md ]; then
+            python opencode/scripts/extract_changelog.py ${{ steps.version.outputs.VERSION }} > release_notes.md
+          else
+            echo "Release ${{ steps.version.outputs.VERSION }}" > release_notes.md
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: build/opencode-agents-${{ steps.version.outputs.VERSION }}.tar.gz
+          body_path: release_notes.md
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
